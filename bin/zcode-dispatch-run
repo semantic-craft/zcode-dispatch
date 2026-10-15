@@ -1,0 +1,33 @@
+#!/usr/bin/env node
+// Same argv as bin/zcode-run (-p TEXT --cwd DIR [--mode M] [--job-id ID] [--source SRC] [--resume sess_…] ...).
+// Order: ZCode.app running -> visible app session (desktop login+model) -> CLI stream-json -> headless. See lib/route.mjs.
+import { spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { appRunning, bindSession, checkSchema, extractTags, runInApp, upsertJob } from '../lib/appsession.mjs';
+import { runTask } from '../lib/zcode-protocol.mjs';
+import { dispatch } from '../lib/route.mjs';
+
+const argv = process.argv.slice(2);
+const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined; };
+const text = opt('-p');
+const cwd = opt('--cwd') || process.cwd();
+const mode = opt('--mode') || 'yolo';
+const source = opt('--source') || process.env.ZCODE_DISPATCH_SOURCE || extractTags(text || '').source || 'dispatch';
+const jobId = opt('--job-id') || process.env.ZCODE_DISPATCH_JOB_ID || extractTags(text || '').jobId || randomBytes(8).toString('hex');
+process.env.ZCODE_DISPATCH_JOB_ID = jobId;
+process.env.ZCODE_DISPATCH_SOURCE = source;
+if (!text) { console.error('usage: zcode-dispatch-run -p TEXT --cwd DIR [--mode M]'); process.exit(2); }
+const here = path.dirname(fileURLToPath(import.meta.url));
+const code = await dispatch({
+  cwd, text, mode, source, jobId,
+  timeoutSeconds: Number(process.env.ZCODE_DISPATCH_TIMEOUT || 1800),
+  resumeSessionId: opt('--resume') || process.env.ZCODE_DISPATCH_RESUME || undefined,
+  emit: (o) => console.log(JSON.stringify(o)),
+  deps: {
+    appRunning, checkSchema, runInApp, runTask, upsertJob, bindSession,
+    runHeadless: () => spawnSync(path.join(here, 'zcode-run'), argv.filter((a, i) => a !== '--resume' && argv[i - 1] !== '--resume'), { stdio: 'inherit', env: process.env }).status ?? 1,
+  },
+});
+process.exit(code);

@@ -1,0 +1,36 @@
+{
+  "name": "zcode-dispatch",
+  "description": "ZCode <-> DSH / Grok Bot bidirectional dispatch marketplace (semantic-craft)",
+  "description_i18n": {
+    "en": "ZCode <-> DSH / Grok Bot bidirectional dispatch marketplace (semantic-craft)",
+    "zh-CN": "ZCode 与 DSH / Grok Bot 双向互通个人插件市场（semantic-craft）"
+  },
+  "owner": {
+    "name": "semantic-craft",
+    "url": "https://github.com/semantic-craft/zcode-dispatch"
+  },
+  "plugins": [
+    {
+      "name": "zcode-dispatch",
+      "source": "./plugins/zcode-dispatch",
+      "displayName": "ZCode Dispatch",
+      "displayName_i18n": {
+        "en": "ZCode Dispatch",
+        "zh-CN": "ZCode 双向派活"
+      },
+      "version": "0.3.0",
+      "author": {
+        "name": "semantic-craft",
+        "url": "https://github.com/semantic-craft/zcode-dispatch"
+      },
+      "description": "Bidirectional dispatch between ZCode desktop and DSH / Grok Bot ([Project: X] routing, persistent session<->job mapping, automatic result reporting: direct HTTP by default, Yobiru optional).",
+      "description_i18n": {
+        "en": "Bidirectional dispatch between ZCode desktop and DSH / Grok Bot ([Project: X] routing, persistent session<->job mapping, automatic result reporting: direct HTTP by default, Yobiru optional).",
+        "zh-CN": "ZCode 桌面版与 DSH / Grok Bot 双向派活插件（[Project: X] 路由、会话↔job 持久映射、默认 HTTP 直连自动回报结果，Yobiru 可选）。"
+      },
+      "category": "productivity",
+      "tags": ["dispatch", "yobiru", "dsh", "grok-bot", "hooks", "mcp"],
+      "keywords": ["dispatch", "yobiru", "dsh", "grok-bot", "hooks", "mcp"]
+    }
+  ]
+}

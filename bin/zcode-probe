@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+// ZCode compatibility probe. Default: CLI version + ZCode Protocol identity (no prompt).
+// --live: also runs a one-line prompt via the CLI dispatch path to prove login/entitlement.
+// Exit 0 usable; 4 app-scheduler schema changed (app path will fall back); 3 no usable model/login (`zcode login bigmodel`); 2 incompatible ZCode (update lib/zcode-protocol.mjs).
+import { cliVersion, probe, resolveZcode, ZCodeCompatError } from '../lib/zcode-protocol.mjs';
+import { appRunning, checkSchema } from '../lib/appsession.mjs';
+const live = process.argv.includes('--live');
+try {
+  const z = resolveZcode();
+  let app = { running: appRunning(), schema: 'ok' };
+  try { checkSchema(); } catch (e) { app.schema = e.message; console.error(e.message); }
+  const r = await probe({ live });
+  console.log(JSON.stringify({ primary: app.running && app.schema === 'ok' ? 'app' : 'protocol', app, cli: z.bin, cliVersion: cliVersion(z), ...r }));
+  if (app.schema !== 'ok') process.exitCode = 4;
+  if (!r.ok) { console.error(`[zcode-dispatch] live probe failed: ${r.error}`); process.exit(3); }
+} catch (e) { console.error(e.message); process.exit(e instanceof ZCodeCompatError && /no usable model/.test(e.message) ? 3 : 2); }

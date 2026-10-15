@@ -1,0 +1,7 @@
+#!/bin/sh
+# Run the ZCode CLI bundled inside ZCode.app (zcode 0.16.9 in ZCode 3.15.3) headless.
+# Usage: zcode-run -p "<prompt>" --cwd <dir> [--mode yolo] [--json] ...
+APP="${ZCODE_APP:-/Applications/ZCode.app}"
+export ZCODE_BUILTIN_PROVIDER_CONFIG_FILE="${ZCODE_BUILTIN_PROVIDER_CONFIG_FILE:-$APP/Contents/Resources/config/provider/zcode-builtin.json}"
+NODE="${ZCODE_NODE:-$(command -v node || echo /opt/homebrew/bin/node)}"
+exec "$NODE" "$APP/Contents/Resources/glm/zcode.cjs" "$@"

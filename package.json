@@ -1,0 +1,1 @@
+{"name": "zcode-dispatch", "private": true, "type": "module", "scripts": {"test": "node --test test/core.test.mjs test/appsession.test.mjs test/zcode-protocol.test.mjs test/route.test.mjs test/netconfig.test.mjs test/transport.test.mjs", "start": "node receiver/server.mjs"}, "engines": {"node": ">=22.5"}}
