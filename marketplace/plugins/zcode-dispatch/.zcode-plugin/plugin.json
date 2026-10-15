@@ -12,6 +12,6 @@
   },
   "homepage": "https://github.com/semantic-craft/zcode-dispatch",
   "repository": "https://github.com/semantic-craft/zcode-dispatch",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "keywords": ["dispatch", "yobiru", "dsh", "grok-bot", "hooks", "mcp"]
 }
