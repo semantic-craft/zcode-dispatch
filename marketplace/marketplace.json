@@ -11,9 +11,9 @@
   },
   "plugins": [
     {
-      "name": "zcode-dispatch",
-      "source": "./plugins/zcode-dispatch",
-      "displayName": "ZCode Dispatch",
+      "name": "zcode-grokbot-dispatch",
+      "source": "./plugins/zcode-grokbot-dispatch",
+      "displayName": "Grok Bot Dispatch for ZCode",
       "displayName_i18n": {
         "en": "ZCode Dispatch",
         "zh-CN": "ZCode 双向派活"

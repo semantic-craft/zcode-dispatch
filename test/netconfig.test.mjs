@@ -6,8 +6,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { peerIPs, readConfigFile, resolveNetConfig, yobiruBin } from '../marketplace/plugins/zcode-dispatch/lib/netconfig.mjs';
-import { isGrokPeer } from '../marketplace/plugins/zcode-dispatch/lib/job-map.mjs';
+import { peerIPs, readConfigFile, resolveNetConfig, yobiruBin } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/netconfig.mjs';
+import { isGrokPeer } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/job-map.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const STATUS = {
@@ -32,7 +32,7 @@ test('env > config > discovery; nothing resolvable -> null host, empty allowlist
 
 test('receiver DEFAULTS and plugin CFG read the local config file (temp dir fixture)', async () => {
   const { DEFAULTS } = await import('../receiver/core.mjs');
-  const { CFG } = await import('../marketplace/plugins/zcode-dispatch/lib/dispatch.mjs');
+  const { CFG } = await import('../marketplace/plugins/zcode-grokbot-dispatch/lib/dispatch.mjs');
   assert.equal(DEFAULTS.host, '192.0.2.20');
   assert.deepEqual(DEFAULTS.allowedIps, [BOX_IP]);
   assert.equal(CFG.grokPeer, GROK_PEER);

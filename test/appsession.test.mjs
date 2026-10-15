@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { enqueue, extractTags, loadMap, resolveJob, resultText, summaryTitle, withSource } from '../lib/appsession.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const HOOK = path.resolve(HERE, '../marketplace/plugins/zcode-dispatch/hooks/stop-report.mjs');
+const HOOK = path.resolve(HERE, '../marketplace/plugins/zcode-grokbot-dispatch/hooks/stop-report.mjs');
 
 function initFakeTasksDb(dbFile) {
   const db = new DatabaseSync(dbFile);
@@ -274,7 +274,7 @@ test('upsertJob and bindSession serialize concurrent multi-process writes and cl
   const past = new Date(Date.now() - 30000);
   fs.utimesSync(lockFile, past, past);
 
-  const jobMapUrl = new URL('../marketplace/plugins/zcode-dispatch/lib/job-map.mjs', import.meta.url).href;
+  const jobMapUrl = new URL('../marketplace/plugins/zcode-grokbot-dispatch/lib/job-map.mjs', import.meta.url).href;
   const workerScript = `
     import { bindSession, upsertJob } from ${JSON.stringify(jobMapUrl)};
     const [stateDir, prefix] = process.argv.slice(1);

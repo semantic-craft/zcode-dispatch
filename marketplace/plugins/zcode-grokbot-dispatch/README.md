@@ -1,4 +1,7 @@
-# Grok Bot Dispatch for ZCode (zcode-dispatch)
+# Grok Bot Dispatch for ZCode (zcode-grokbot-dispatch)
+
+> Plugin id: `zcode-grokbot-dispatch` (renamed from the pre-release id `zcode-dispatch`). Runtime paths are unchanged (`~/.config/zcode-dispatch/`, `~/.local/state/zcode-dispatch/`, `ZCODE_DISPATCH_*` env), so existing config keeps working; if you installed the old `zcode-dispatch` build, uninstall it and install `zcode-grokbot-dispatch`.
+
 
 Bidirectional task dispatch between the ZCode desktop app and DSH (DeepSeek Harness) / Grok Bot, with `[Project: X]` routing, persistent session↔job mapping and automatic result reporting (direct HTTP by default, Yobiru optional).
 
@@ -8,7 +11,7 @@ Bidirectional task dispatch between the ZCode desktop app and DSH (DeepSeek Harn
 - **Hooks**: `UserPromptSubmit` (records session↔job mapping) and `Stop` (reports the finished session's result to the dispatching peer)
 
 ## Install
-1. ZCode → Settings → Plugins → `zcode-plugins-official` → install **zcode-dispatch**.
+1. ZCode → Settings → Plugins → `zcode-plugins-official` → install **zcode-grokbot-dispatch**.
 2. Requires Node.js ≥ 22.5 on PATH. `/dispatch-dsh` also requires the `dsh` CLI (override with `DSH_BIN`).
 3. Configure peers in `~/.config/zcode-dispatch/config.json` or env vars (env wins), e.g.:
    ```json

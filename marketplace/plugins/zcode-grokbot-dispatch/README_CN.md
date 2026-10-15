@@ -1,4 +1,7 @@
-# Grok Bot Dispatch for ZCode（zcode-dispatch，Grok Bot 双向派活）
+# Grok Bot Dispatch for ZCode（zcode-grokbot-dispatch，Grok Bot 双向派活）
+
+> 插件 id：`zcode-grokbot-dispatch`（由预发布 id `zcode-dispatch` 更名）。运行时路径不变（`~/.config/zcode-dispatch/`、`~/.local/state/zcode-dispatch/`、`ZCODE_DISPATCH_*` 环境变量），原配置继续可用；如装过旧的 `zcode-dispatch`，请先卸载再安装 `zcode-grokbot-dispatch`。
+
 
 ZCode 桌面版与 DSH（DeepSeek Harness）/ Grok Bot 之间的双向派活插件：按 `[Project: X]` 路由、会话↔job 持久映射、任务完成后自动回报结果（默认 HTTP 直连，Yobiru 可选）。
 
@@ -8,7 +11,7 @@ ZCode 桌面版与 DSH（DeepSeek Harness）/ Grok Bot 之间的双向派活插�
 - **Hooks**：`UserPromptSubmit`（记录会话↔job 映射）、`Stop`（把派活会话的结果回报给派活方）
 
 ## 安装
-1. ZCode → 设置 → Plugins → `zcode-plugins-official` → 安装 **zcode-dispatch**。
+1. ZCode → 设置 → Plugins → `zcode-plugins-official` → 安装 **zcode-grokbot-dispatch**。
 2. 需要 PATH 中有 Node.js ≥ 22.5；`/dispatch-dsh` 还需要 `dsh` CLI（可用 `DSH_BIN` 指定）。
 3. 在 `~/.config/zcode-dispatch/config.json` 或环境变量中配置对端（环境变量优先），例如：
    ```json

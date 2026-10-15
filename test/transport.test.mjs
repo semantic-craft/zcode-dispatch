@@ -17,8 +17,8 @@ process.env.ZCODE_DISPATCH_PROJECTS_ROOT = path.join(dir, 'Projects');
 for (const k of ['ZCODE_DISPATCH_TRANSPORT', 'ZCODE_DISPATCH_GROK_PEER', 'DISPATCH_HOST', 'DISPATCH_ALLOWED_IPS', 'ZCODE_DISPATCH_RUNNER', 'DSH_BIN']) delete process.env[k];
 const writeCfg = (c) => fs.writeFileSync(CONFIG, JSON.stringify(c));
 
-const T = await import('../marketplace/plugins/zcode-dispatch/lib/transport.mjs');
-const D = await import('../marketplace/plugins/zcode-dispatch/lib/dispatch.mjs');
+const T = await import('../marketplace/plugins/zcode-grokbot-dispatch/lib/transport.mjs');
+const D = await import('../marketplace/plugins/zcode-grokbot-dispatch/lib/dispatch.mjs');
 const { checkCompat, validateDispatch, HttpError } = await import('../receiver/core.mjs');
 
 function peerServer() {

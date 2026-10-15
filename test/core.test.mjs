@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
 import { DEFAULTS, JobStore, checkAuth, extractResult, startJob, validateDispatch } from '../receiver/core.mjs';
-import { route, status } from '../marketplace/plugins/zcode-dispatch/lib/dispatch.mjs';
-import { upsertJob } from '../marketplace/plugins/zcode-dispatch/lib/job-map.mjs';
+import { route, status } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/dispatch.mjs';
+import { upsertJob } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/job-map.mjs';
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'zd-'));
 fs.mkdirSync(path.join(tmp, 'Projects', 'demo'), { recursive: true });

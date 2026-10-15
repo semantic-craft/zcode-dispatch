@@ -8,8 +8,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { denyProjectsRe, projectsRoot, readConfigFile, resolveNetConfig } from '../marketplace/plugins/zcode-dispatch/lib/netconfig.mjs';
-import { checkTransport, expandHome, peerForUrl, respond as transportRespond } from '../marketplace/plugins/zcode-dispatch/lib/transport.mjs';
+import { denyProjectsRe, projectsRoot, readConfigFile, resolveNetConfig } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/netconfig.mjs';
+import { checkTransport, expandHome, peerForUrl, respond as transportRespond } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/transport.mjs';
 import { resolveZcode } from '../lib/zcode-protocol.mjs';
 
 const HOME = os.homedir();
