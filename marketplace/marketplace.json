@@ -23,14 +23,29 @@
         "name": "semantic-craft",
         "url": "https://github.com/semantic-craft/zcode-dispatch"
       },
-      "description": "Bidirectional dispatch between ZCode desktop and DSH / Grok Bot ([Project: X] routing, persistent session<->job mapping, automatic result reporting: direct HTTP by default, Yobiru optional).",
+      "description": "Grok Bot Dispatch for ZCode: bidirectional task dispatch between ZCode desktop and Grok Bot / DSH ([Project: X] routing, persistent session<->job mapping, automatic result reporting back to your Grok Bot peer: direct HTTP by default, Yobiru optional).",
       "description_i18n": {
-        "en": "Bidirectional dispatch between ZCode desktop and DSH / Grok Bot ([Project: X] routing, persistent session<->job mapping, automatic result reporting: direct HTTP by default, Yobiru optional).",
-        "zh-CN": "ZCode 桌面版与 DSH / Grok Bot 双向派活插件（[Project: X] 路由、会话↔job 持久映射、默认 HTTP 直连自动回报结果，Yobiru 可选）。"
+        "en": "Grok Bot Dispatch for ZCode: bidirectional task dispatch between ZCode desktop and Grok Bot / DSH ([Project: X] routing, persistent session<->job mapping, automatic result reporting back to your Grok Bot peer: direct HTTP by default, Yobiru optional).",
+        "zh-CN": "Grok Bot 派活插件（ZCode 版）：ZCode 桌面版与 Grok Bot / DSH 双向派活（[Project: X] 路由、会话↔job 持久映射、任务结果自动回报给 Grok Bot 对端，默认 HTTP 直连，Yobiru 可选）。"
       },
       "category": "productivity",
-      "tags": ["dispatch", "yobiru", "dsh", "grok-bot", "hooks", "mcp"],
-      "keywords": ["dispatch", "yobiru", "dsh", "grok-bot", "hooks", "mcp"]
+      "tags": [
+        "dispatch",
+        "yobiru",
+        "dsh",
+        "grok-bot",
+        "hooks",
+        "mcp"
+      ],
+      "keywords": [
+        "grok-bot",
+        "grokbot",
+        "dispatch",
+        "dsh",
+        "yobiru",
+        "hooks",
+        "mcp"
+      ]
     }
   ]
 }

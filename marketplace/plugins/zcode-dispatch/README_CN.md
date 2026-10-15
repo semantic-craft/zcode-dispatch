@@ -1,4 +1,4 @@
-# ZCode Dispatch（ZCode 双向派活）
+# Grok Bot Dispatch for ZCode（zcode-dispatch，Grok Bot 双向派活）
 
 ZCode 桌面版与 DSH（DeepSeek Harness）/ Grok Bot 之间的双向派活插件：按 `[Project: X]` 路由、会话↔job 持久映射、任务完成后自动回报结果（默认 HTTP 直连，Yobiru 可选）。
 

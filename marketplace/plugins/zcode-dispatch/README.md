@@ -1,4 +1,4 @@
-# ZCode Dispatch
+# Grok Bot Dispatch for ZCode (zcode-dispatch)
 
 Bidirectional task dispatch between the ZCode desktop app and DSH (DeepSeek Harness) / Grok Bot, with `[Project: X]` routing, persistent session↔job mapping and automatic result reporting (direct HTTP by default, Yobiru optional).
 
