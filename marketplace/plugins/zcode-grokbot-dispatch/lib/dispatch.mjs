@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { JOB_ID_RE, defaultStateDir, loadMap } from './job-map.mjs';
+import { resolveModel } from './models.mjs';
 import { denyProjectsRe, projectsRoot, readConfigFile, resolveNetConfig } from './netconfig.mjs';
 import { directPeers, directSend, directStatus, expandHome, send, status as transportStatus, transportName, which } from './transport.mjs';
 
@@ -39,10 +40,12 @@ export function route(project, text) {
   return { project, cwd, text: tag ? text : `[Project: ${project}] ${text}` };
 }
 
-export async function toGrokBot({ project, text, timeout_seconds = 1800 }) {
+export async function toGrokBot({ project, text, timeout_seconds = 1800, model }) {
   const r = route(project, text);
-  const out = await send('grok-bot', { project: r.project, text: r.text, timeoutSeconds: timeout_seconds });
-  return { target: 'grok-bot', via: transportName(), project: r.project, request_id: out.id, output: out.output };
+  // Model for any ZCode work this request leads to (Grok Bot -> ZCode back-dispatch): default GLM-5.3 Flash, checked now.
+  const m = resolveModel(model).id;
+  const out = await send('grok-bot', { project: r.project, text: r.text, timeoutSeconds: timeout_seconds, model: m });
+  return { target: 'grok-bot', via: transportName(), project: r.project, model: m, request_id: out.id, output: out.output };
 }
 
 export async function toDsh({ project, text, timeout_seconds = 1800 }) {

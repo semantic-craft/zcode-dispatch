@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Same argv as bin/zcode-run (-p TEXT --cwd DIR [--mode M] [--job-id ID] [--source SRC] [--resume sess_…] ...).
+// Same argv as bin/zcode-run (-p TEXT --cwd DIR [--mode M] [--model providerId/modelId] [--job-id ID] [--source SRC] [--resume sess_…] ...).
+// Model: --model / ZCODE_DISPATCH_MODEL, else GLM-5.3 Flash (lib/models.mjs); unknown model = exit 2, no fallback.
 // Order: ZCode.app running -> visible app session (desktop login+model) -> CLI stream-json -> headless. See lib/route.mjs.
 import { spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -8,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { appRunning, bindSession, checkSchema, extractTags, runInApp, upsertJob } from '../lib/appsession.mjs';
 import { runTask } from '../lib/zcode-protocol.mjs';
 import { dispatch } from '../lib/route.mjs';
+import { resolveModel } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/models.mjs';
 
 const argv = process.argv.slice(2);
 const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined; };
@@ -18,10 +20,12 @@ const source = opt('--source') || process.env.ZCODE_DISPATCH_SOURCE || extractTa
 const jobId = opt('--job-id') || process.env.ZCODE_DISPATCH_JOB_ID || extractTags(text || '').jobId || randomBytes(8).toString('hex');
 process.env.ZCODE_DISPATCH_JOB_ID = jobId;
 process.env.ZCODE_DISPATCH_SOURCE = source;
-if (!text) { console.error('usage: zcode-dispatch-run -p TEXT --cwd DIR [--mode M]'); process.exit(2); }
+if (!text) { console.error('usage: zcode-dispatch-run -p TEXT --cwd DIR [--mode M] [--model providerId/modelId]'); process.exit(2); }
+let model;
+try { model = resolveModel(opt('--model') || process.env.ZCODE_DISPATCH_MODEL).id; } catch (e) { console.error(e.message); console.log(JSON.stringify({ type: 'final', via: 'none', job_id: jobId, outcome: 'failed', result: '', error: e.message })); process.exit(2); }
 const here = path.dirname(fileURLToPath(import.meta.url));
 const code = await dispatch({
-  cwd, text, mode, source, jobId,
+  cwd, text, mode, source, jobId, model,
   timeoutSeconds: Number(process.env.ZCODE_DISPATCH_TIMEOUT || 1800),
   resumeSessionId: opt('--resume') || process.env.ZCODE_DISPATCH_RESUME || undefined,
   emit: (o) => console.log(JSON.stringify(o)),
