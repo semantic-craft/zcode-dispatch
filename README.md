@@ -57,7 +57,7 @@ On start the receiver logs a **compat check** — key present and `chmod 600`, `
 
 A peer that should push results back needs **you** in its `peers` under your `selfName` (or the request carries `callback_url` that starts with one of the receiver's configured peer URLs). Other `callback_url`s are refused with 400.
 
-`transport: "yobiru"` is **optional**, for meshes already on Yobiru/tailmsg: add `"transport": "yobiru"` and `"grokPeer": "<node>/grok"`. All Yobiru CLI calls are in `marketplace/plugins/zcode-dispatch/lib/transport.mjs`. Private deployment config (launchd, Yobiru wake adapter, host notes) is not in this repository — see your own deploy docs/mesh.
+`transport: "yobiru"` is **optional**, for meshes already on Yobiru/tailmsg: add `"transport": "yobiru"` and `"grokPeer": "<node>/grok"`. All Yobiru CLI calls are in `marketplace/plugins/zcode-dispatch/lib/transport.mjs`. The Yobiru wake adapter and host notes are private deploy config and not in this repository; macOS launchd and self-check are under **Operate**.
 
 ## Pieces
 
@@ -158,6 +158,13 @@ npm test
 ZCODE_DISPATCH_URL=http://<host>:7791 ZCODE_DISPATCH_KEY=... client/zcode-dispatch.sh send myproj "[Project: myproj] Reply with exactly OK"   # then: wait <id>
 ```
 
-macOS launchd, self-check and the Yobiru wake adapter: private deploy config is not in this repository — see your own deploy docs/mesh.
+Optional macOS helpers (no secrets; host comes from env / `config.json` / tailscale, as above):
+
+```sh
+bin/install-launchd.sh        # render launchd/dev.semantic-craft.zcode-dispatch.plist.template into ~/Library/LaunchAgents (prints, does not run, the launchctl commands)
+bin/selfcheck.sh [N]          # launchd state, zcode-probe --live, /health, last N log lines and jobs, Stop-hook reports
+```
+
+The Yobiru wake adapter is private deploy config and not in this repository.
 
 Logs: `~/.local/state/zcode-dispatch/logs/dispatch.log` (2 MB rotate), `launchd.log` (if launchd is used); jobs in `.../jobs/`; mapping in `.../session-jobs.json`; Stop-hook reports in `.../reports/`.
