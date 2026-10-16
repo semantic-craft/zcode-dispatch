@@ -57,6 +57,8 @@ On start the receiver logs a **compat check** — key present and `chmod 600`, `
 
 A peer that should push results back needs **you** in its `peers` under your `selfName` (or the request carries `callback_url` that starts with one of the receiver's configured peer URLs). Other `callback_url`s are refused with 400.
 
+**Checkout policy (inbound git jobs).** The receiver appends a `checkout-policy` note to every inbound job whose project folder is a git checkout: builds, tests, verification gates and git history scans must run in a clean single-branch clone under a fresh temp directory (`git clone --no-local --single-branch …`), or in a temp clone that fetches only the needed PR ref — never in a linked worktree or a maintainer's working checkout, where shared refs make history-wide scans (`--log-opts=--all`) sweep unrelated local refs and raise false alarms. The stored job text stays exactly as the caller sent it.
+
 `transport: "yobiru"` is **optional**, for meshes already on Yobiru/tailmsg: add `"transport": "yobiru"` and `"grokPeer": "<node>/grok"`. All Yobiru CLI calls are in `marketplace/plugins/zcode-dispatch/lib/transport.mjs`. Private deployment config (launchd, Yobiru wake adapter, host notes) is not in this repository — see your own deploy docs/mesh.
 
 ## Pieces
