@@ -22,7 +22,7 @@ process.env.ZCODE_DISPATCH_JOB_ID = jobId;
 process.env.ZCODE_DISPATCH_SOURCE = source;
 if (!text) { console.error('usage: zcode-dispatch-run -p TEXT --cwd DIR [--mode M] [--model providerId/modelId]'); process.exit(2); }
 let model;
-try { model = resolveModel(opt('--model') || process.env.ZCODE_DISPATCH_MODEL).id; } catch (e) { console.error(e.message); console.log(JSON.stringify({ type: 'final', via: 'none', job_id: jobId, outcome: 'failed', result: '', error: e.message })); process.exit(2); }
+try { model = resolveModel(opt("--model") || process.env.ZCODE_DISPATCH_MODEL).selection; } catch (e) { console.error(e.message); console.log(JSON.stringify({ type: 'final', via: 'none', job_id: jobId, outcome: 'failed', result: '', error: e.message })); process.exit(2); }
 const here = path.dirname(fileURLToPath(import.meta.url));
 const code = await dispatch({
   cwd, text, mode, source, jobId, model,

@@ -25,10 +25,20 @@ export function defaultModel(env = process.env) {
   return (env.ZCODE_DISPATCH_DEFAULT_MODEL || readConfigFile().defaultModel || BUILTIN_DEFAULT_MODEL).trim();
 }
 
-export function parseModel(id) {
-  const m = /^([^/\s]+)\/([^/\s$]+)(?:\$[a-z]+)?$/.exec(String(id || '').trim());
+/**
+ * ZCode.app's Host refuses an automation whose selection has no options.reasoningLevel
+ * ("Automation 模型选择不可用，请重新选择模型与思考档位", host dispatch Z8()). ZCode writes its own runs with
+ * reasoningLevel "max", so that is the default; `<id>$<level>` (ZCode's own notation) or
+ * ZCODE_DISPATCH_REASONING_LEVEL / config "reasoningLevel" override it.
+ */
+export function defaultReasoningLevel(env = process.env) {
+  return (env.ZCODE_DISPATCH_REASONING_LEVEL || readConfigFile().reasoningLevel || 'max').trim();
+}
+
+export function parseModel(id, env = process.env) {
+  const m = /^([^/\s]+)\/([^/\s$]+)(?:\$([a-z]+))?$/.exec(String(id || '').trim());
   if (!m) throw new ModelError(`"${id}" is not a ZCode model id (expected <providerId>/<modelId>, e.g. ${BUILTIN_DEFAULT_MODEL})`);
-  return { providerId: m[1], modelId: m[2], id: `${m[1]}/${m[2]}` };
+  return { providerId: m[1], modelId: m[2], id: `${m[1]}/${m[2]}`, reasoningLevel: m[3] || defaultReasoningLevel(env) };
 }
 
 /** Newest ZCode provider catalog (written by ZCode itself under ~/.zcode/v2/runtime/provider). */
@@ -77,11 +87,12 @@ export function resolveModel(requested, { env = process.env, available } = {}) {
     throw new ModelError(`${explicit ? 'requested' : 'default'} model ${m.id} is not offered by this ZCode install` +
       ` (available for ${m.providerId}: ${same.join(', ') || 'none'}). Not falling back to another model.`);
   }
-  return { ...m, explicit: Boolean(explicit) };
+  return { ...m, explicit: Boolean(explicit), selection: `${m.id}$${m.reasoningLevel}` };
 }
 
 /** True when ZCode's reported session model (e.g. "account:x/GLM-5.3-Flash$max") is the requested id. */
 export function sameModel(reported, wanted) {
   if (!reported || !wanted) return false;
-  return String(reported).replace(/\$[a-z]+$/, '') === String(wanted);
+  const bare = (x) => String(x).replace(/\$[a-z]+$/, '');
+  return bare(reported) === bare(wanted);
 }

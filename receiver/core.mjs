@@ -89,7 +89,7 @@ export function validateDispatch(cfg, body) {
   if (callbackUrl && !peerForUrl(callbackUrl)) throw new HttpError(400, 'callback_url must start with a configured peer url (config.json peers)');
   if (body.model != null && (typeof body.model !== 'string' || !body.model.trim())) throw new HttpError(400, 'model must be a ZCode model id string');
   let model;
-  try { model = resolveModel(body.model, { available: cfg.availableModels?.() }).id; } catch (e) { throw new HttpError(400, e.message); }
+  try { model = resolveModel(body.model, { available: cfg.availableModels?.() }).selection; } catch (e) { throw new HttpError(400, e.message); }
   return { project, cwd, text, timeoutSeconds, mode, source, jobId, callbackPeer, callbackUrl, model };
 }
 

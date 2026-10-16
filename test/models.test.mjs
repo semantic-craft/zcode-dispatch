@@ -36,14 +36,16 @@ test('sameModel ignores ZCode reasoning suffix ($max)', () => {
   assert.ok(!sameModel('account:bigmodel-individual-coding-plan/GLM-5.3$max', BUILTIN_DEFAULT_MODEL));
 });
 
-test('app path writes model_selection {providerId, modelId} instead of null', () => {
+test('app path writes model_selection {providerId, modelId, options.reasoningLevel} instead of null (Host rejects a selection without reasoningLevel)', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'zd-m-')); const dbPath = path.join(dir, 't.sqlite');
   const db = new DatabaseSync(dbPath);
   db.exec(`CREATE TABLE automations (automation_id TEXT, title TEXT, cron_expr TEXT, prompt TEXT, model TEXT, provider TEXT, model_selection TEXT, workspace_key TEXT, workspace_path TEXT, location_kind TEXT, recurring INT, max_runs INT, enabled INT, lifecycle_status TEXT, next_run_at INT, running INT, dispatch_status TEXT, dispatch_attempts INT, mode TEXT, created_at INT, updated_at INT)`);
   db.close();
   const id = enqueue({ cwd: dir, text: '[Project: x] hi', model: BUILTIN_DEFAULT_MODEL, source: 'grok-bot', dbPath, stateDir: dir });
   const row = new DatabaseSync(dbPath).prepare('SELECT model_selection FROM automations WHERE automation_id=?').get(id);
-  assert.deepEqual(JSON.parse(row.model_selection), { providerId: 'account:bigmodel-individual-coding-plan', modelId: 'GLM-5.3-Flash' });
+  assert.deepEqual(JSON.parse(row.model_selection), { providerId: 'account:bigmodel-individual-coding-plan', modelId: 'GLM-5.3-Flash', options: { reasoningLevel: 'max' } });
+  const id2 = enqueue({ cwd: dir, text: '[Project: x] hi', model: BUILTIN_DEFAULT_MODEL + '$high', source: 'grok-bot', dbPath, stateDir: dir });
+  assert.equal(JSON.parse(new DatabaseSync(dbPath).prepare('SELECT model_selection FROM automations WHERE automation_id=?').get(id2).model_selection).options.reasoningLevel, 'high');
 });
 
 test('headless path refuses when a model is required (cannot select/verify it)', async () => {
