@@ -98,11 +98,11 @@ async function httpJson(method, url, keyFile, body) {
 }
 
 const direct = {
-  async send(target, { project, text, timeoutSeconds = 1800, jobId }) {
+  async send(target, { project, text, timeoutSeconds = 1800, jobId, model }) {
     const peer = directPeers()[target];
     if (!peer) throw new Error(`peer "${target}" is not configured: add peers.${target} {url, keyFile} to ~/.config/zcode-dispatch/config.json`);
     const f = readConfigFile();
-    const body = { project, text, timeout_seconds: Number(timeoutSeconds), source: 'zcode', ...(jobId ? { job_id: jobId } : {}),
+    const body = { project, text, timeout_seconds: Number(timeoutSeconds), source: 'zcode', ...(jobId ? { job_id: jobId } : {}), ...(model ? { model } : {}),
       ...(f.callbackUrl ? { callback_url: f.callbackUrl } : { callback_peer: f.selfName || 'zcode' }) };
     const j = await httpJson('POST', `${peer.url}/v1/jobs`, peer.keyFile, body);
     return { id: j?.id ?? jobId ?? null, peer: target, output: JSON.stringify(j).slice(0, 2000) };

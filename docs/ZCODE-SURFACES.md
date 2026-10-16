@@ -67,3 +67,22 @@ the desktop's token minting would mean decrypting the user's OAuth token — exp
   Dispatch proceeds regardless.
 - Internal read: only the `recentProjects` key (array of strings or `{path}`). If the
   shape changes we warn and skip; set `ZCODE_DISPATCH_REGISTER_PROJECT=0` to disable.
+
+## Model selection (user decision 2026-10-16)
+
+Every dispatch in both directions (Grok Bot -> ZCode receiver, and ZCode plugin -> Grok Bot / DSH) runs
+**GLM-5.3 Flash** unless the dispatch explicitly names another model (`model` in the JSON body / MCP tool, `--model` on
+`bin/zcode-dispatch-run`). The id is ZCode's own: `account:bigmodel-individual-coding-plan/GLM-5.3-Flash`
+(`providerId/modelId`, as ZCode reports it in `automation_runs.model_selection`, `tasks.model`, and CLI stream `payload`).
+
+Before this, the app path wrote `model_selection = 'null'` ("follow workspace default") and ZCode's desktop default
+(`~/.zcode/v2/provider_config.json` `defaultModelSelection`) is `GLM-5.3`, so every dispatched session ran GLM-5.3.
+
+| Surface | Use | Stability guard |
+|---|---|---|
+| ZCode provider catalog `~/.zcode/v2/runtime/provider/**/zcode-builtin.json` `providerRules[].config.builtinModelIds` minus `provider_config.json` `enabled:false` rules | ZCode's self-reported model list; receiver start-up check + per-job check | Unreadable/changed format = compat error on `/health`, job rejected with 400; no fallback |
+| `automations.model_selection` JSON `{providerId, modelId}` | app path picks the model per job | session `tasks.model` read back; mismatch fails the job |
+| CLI stream `payload.providerId/modelId` | CLI path has no per-run model flag | mismatch with the requested model kills the run and fails loudly |
+| bare headless `zcode-run` | cannot select or report a model | refused whenever a model is required |
+
+Override the default with `ZCODE_DISPATCH_DEFAULT_MODEL` or `"defaultModel"` in `~/.config/zcode-dispatch/config.json`.

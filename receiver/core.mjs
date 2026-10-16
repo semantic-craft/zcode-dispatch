@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 import { denyProjectsRe, projectsRoot, readConfigFile, resolveNetConfig } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/netconfig.mjs';
 import { checkTransport, expandHome, peerForUrl, respond as transportRespond } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/transport.mjs';
 import { resolveZcode } from '../lib/zcode-protocol.mjs';
+import { ModelError, defaultModel, resolveModel } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/models.mjs';
 
 const HOME = os.homedir();
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -25,6 +26,7 @@ export const DEFAULTS = {
   // env ZCODE_DISPATCH_RUNNER > config "runner" > bin/zcode-dispatch-run (app session -> CLI -> headless)
   get runner() { return expandHome(process.env.ZCODE_DISPATCH_RUNNER || readConfigFile().runner) || path.join(REPO, 'bin', 'zcode-dispatch-run'); },
   mode: 'yolo',
+  get defaultModel() { return defaultModel(); },   // GLM-5.3 Flash unless ZCODE_DISPATCH_DEFAULT_MODEL / config defaultModel
   maxConcurrent: 2,
   defaultTimeoutSeconds: 1800,
   maxTimeoutSeconds: 7200,
@@ -85,7 +87,10 @@ export function validateDispatch(cfg, body) {
   const callbackPeer = str(body.callback_peer); const callbackUrl = str(body.callback_url);
   // Never POST results to arbitrary URLs: callback_url must point at a configured peer (its key is used).
   if (callbackUrl && !peerForUrl(callbackUrl)) throw new HttpError(400, 'callback_url must start with a configured peer url (config.json peers)');
-  return { project, cwd, text, timeoutSeconds, mode, source, jobId, callbackPeer, callbackUrl };
+  if (body.model != null && (typeof body.model !== 'string' || !body.model.trim())) throw new HttpError(400, 'model must be a ZCode model id string');
+  let model;
+  try { model = resolveModel(body.model, { available: cfg.availableModels?.() }).selection; } catch (e) { throw new HttpError(400, e.message); }
+  return { project, cwd, text, timeoutSeconds, mode, source, jobId, callbackPeer, callbackUrl, model };
 }
 
 /** Best-effort final text from `zcode -p --json` stdout (last JSON line with a text-ish field, else raw tail). */
@@ -100,6 +105,12 @@ export function extractResult(stdout) {
   }
   const sid = /sess_[0-9a-f-]{36}/.exec(stdout)?.[0] ?? null;
   return { result: stdout.trim() || null, sessionId: sid };
+}
+
+/** `model` from the runner's final JSON line (ZCode's own report of the session model), if any. */
+export function finalModel(stdout) {
+  for (const l of stdout.trim().split('\n').reverse()) { try { const e = JSON.parse(l); if (e?.type === 'final') return e.model ?? null; } catch {} }
+  return null;
 }
 
 export class JobStore {
@@ -127,11 +138,11 @@ export function startJob(store, spec, logger = console) {
   if (store.running.size >= cfg.maxConcurrent) throw new HttpError(429, `busy: ${store.running.size} jobs running`);
   const id = spec.jobId || randomBytes(8).toString('hex');
   const job = { id, project: spec.project, cwd: spec.cwd, mode: spec.mode, source: spec.source, timeout_seconds: spec.timeoutSeconds,
-    state: 'running', created_at: new Date().toISOString(), text: spec.text,
+    state: 'running', created_at: new Date().toISOString(), text: spec.text, model: spec.model,
     ...(spec.callbackPeer ? { callback_peer: spec.callbackPeer } : {}), ...(spec.callbackUrl ? { callback_url: spec.callbackUrl } : {}) };
   store.save(job);
-  const env = { ...process.env, ZCODE_DISPATCH_JOB_ID: id, ZCODE_DISPATCH_SOURCE: spec.source, ZCODE_DISPATCH_TIMEOUT: String(spec.timeoutSeconds) };
-  const child = spawn(cfg.runner, ['-p', spec.text, '--cwd', spec.cwd, '--mode', spec.mode, '--json', '--surface', 'terminal'],
+  const env = { ...process.env, ZCODE_DISPATCH_JOB_ID: id, ZCODE_DISPATCH_SOURCE: spec.source, ZCODE_DISPATCH_TIMEOUT: String(spec.timeoutSeconds), ...(spec.model ? { ZCODE_DISPATCH_MODEL: spec.model } : {}) };
+  const child = spawn(cfg.runner, ['-p', spec.text, '--cwd', spec.cwd, '--mode', spec.mode, ...(spec.model ? ['--model', spec.model] : []), '--json', '--surface', 'terminal'],
     { cwd: spec.cwd, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   store.running.set(id, child);
   let out = ''; let err = '';
@@ -142,8 +153,9 @@ export function startJob(store, spec, logger = console) {
     clearTimeout(timer); store.running.delete(id);
     fs.writeFileSync(path.join(store.dir, `${id}.stdout`), out, { mode: 0o600 });
     const { result, sessionId } = extractResult(out);
+    const reportedModel = finalModel(out);
     const ok = !e && code === 0 && !job.timed_out;
-    Object.assign(job, { state: ok ? 'completed' : 'failed', exit_code: code, signal: signal ?? null, session_id: sessionId,
+    Object.assign(job, { ...(reportedModel ? { session_model: reportedModel } : {}), state: ok ? 'completed' : 'failed', exit_code: code, signal: signal ?? null, session_id: sessionId,
       finished_at: new Date().toISOString(), result: result == null ? null : String(result).slice(0, cfg.maxResultChars),
       error: ok ? null : e ? String(e.message) : job.timed_out ? 'timeout' : (err.trim() || out.trim()).split('\n').slice(-5).join('\n').slice(0, 2000) || `exit ${code}` });
     store.save(job);
@@ -176,7 +188,9 @@ export function checkCompat(cfg, { zcode = () => resolveZcode() } = {}) {
   if (!process.env.ZCODE_DISPATCH_RUNNER && !readConfigFile().runner) {
     try { zcode(); } catch (e) { errors.push(`zcode: ${e.message.replace(/^\[zcode-dispatch\] /, '')} (install ZCode or set ZCODE_BIN / ZCODE_APP)`); }
   }
+  try { const m = resolveModel(undefined, { available: cfg.availableModels?.() }); if (m.id !== cfg.defaultModel) warnings.push(`model: default resolved to ${m.id}`); }
+  catch (e) { errors.push(`model: ${e.message.replace(/^\[zcode-dispatch\] /, '')}`); }
   const t = checkTransport();
   errors.push(...t.errors); warnings.push(...t.warnings);
-  return { ok: errors.length === 0, transport: t.transport, errors, warnings };
+  return { ok: errors.length === 0, transport: t.transport, defaultModel: cfg.defaultModel, errors, warnings };
 }

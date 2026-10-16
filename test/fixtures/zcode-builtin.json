@@ -1,0 +1,3 @@
+{"schemaVersion":1,"revision":"test","config":{"providerConfigRules":{"providerRules":[
+ {"providerId":"account:bigmodel-individual-coding-plan","config":{"builtinModelIds":["GLM-5.3","GLM-5.3-Flash"]}},
+ {"providerId":"account:bigmodel-start-plan","config":{"builtinModelIds":["GLM-5.3-Flash","GLM-5.2"]}}]}}}

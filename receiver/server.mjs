@@ -21,7 +21,7 @@ const logger = { info: m => log('INFO', m), warn: m => log('WARN', m), error: m 
 const checks = checkCompat(cfg);
 for (const e of checks.errors) logger.error(`compat check FAILED: ${e}`);
 for (const w of checks.warnings) logger.warn(`compat check: ${w}`);
-logger.info(`compat check ${checks.ok ? 'ok' : 'FAILED'} transport=${checks.transport} runner=${cfg.runner}`);
+logger.info(`compat check ${checks.ok ? 'ok' : 'FAILED'} transport=${checks.transport} runner=${cfg.runner} default_model=${checks.defaultModel}`);
 let key;
 try { key = loadKey(cfg.keyFile); } catch (e) { logger.error(`cannot start without a key: ${e.message}`); process.exit(1); }
 const store = new JobStore(cfg); store.reconcile();
@@ -33,7 +33,7 @@ const readBody = (req, limit) => new Promise((resolve, reject) => {
   req.on('data', d => { raw += d; if (raw.length > limit) { reject(new HttpError(413, 'body too large')); req.destroy(); } });
   req.on('end', () => { try { resolve(JSON.parse(raw)); } catch { reject(new HttpError(400, 'invalid JSON')); } });
 });
-const health = () => { const c = checkCompat(cfg); return { ok: c.ok, running: store.running.size, runner: 'zcode-app-session (headless fallback)', transport: c.transport, checks: { errors: c.errors, warnings: c.warnings } }; };
+const health = () => { const c = checkCompat(cfg); return { ok: c.ok, running: store.running.size, runner: 'zcode-app-session (headless fallback)', transport: c.transport, default_model: c.defaultModel, checks: { errors: c.errors, warnings: c.warnings } }; };
 
 const server = http.createServer(async (req, res) => {
   const ip = normalizeIp(req.socket.remoteAddress);
@@ -45,7 +45,7 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === 'POST' && url.pathname === '/v1/jobs') {
       const job = startJob(store, validateDispatch(cfg, await readBody(req, 100000)), logger);
-      logger.info(`job ${job.id} received project=${job.project} source=${job.source} from ${ip}`);
+      logger.info(`job ${job.id} received project=${job.project} source=${job.source} model=${job.model} from ${ip}`);
       return send(res, 202, publicJob(job));
     }
     // Direct-transport push: a peer (e.g. DSH) reports the result of a job we dispatched to it (dispatch_to_dsh via http).

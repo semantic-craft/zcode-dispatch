@@ -5,7 +5,8 @@ import { toGrokBot, toDsh, status } from '../lib/dispatch.mjs';
 
 const proj = { project: { type: 'string', description: 'Folder name under the projects root (default ~/Projects); the text is tagged [Project: <project>] for routing' },
   text: { type: 'string', description: 'Task text. May already start with [Project: <project>]' },
-  timeout_seconds: { type: 'integer', minimum: 10, maximum: 7200 } };
+  timeout_seconds: { type: 'integer', minimum: 10, maximum: 7200 },
+  model: { type: 'string', description: 'ZCode model id <providerId>/<modelId>. Omit for the default GLM-5.3 Flash (account:bigmodel-individual-coding-plan/GLM-5.3-Flash); set only when the user names another model.' } };
 const TOOLS = [
   { name: 'dispatch_to_grokbot', description: 'Send a task to Grok Bot (peer "grok-bot": direct HTTP, or Yobiru grokPeer when transport is yobiru); returns the request/job id.', inputSchema: { type: 'object', properties: proj, required: ['text'] }, run: toGrokBot },
   { name: 'dispatch_to_dsh', description: 'Hand a task to DeepSeek Harness: over HTTP to peers.dsh (any machine) or a local headless dsh; returns a job id.', inputSchema: { type: 'object', properties: proj, required: ['text'] }, run: toDsh },
@@ -17,7 +18,7 @@ readline.createInterface({ input: process.stdin }).on('line', (line) => {
   const { id, method, params } = msg;
   if (id === undefined) return; // notification
   const ok = (result) => write({ jsonrpc: '2.0', id, result });
-  if (method === 'initialize') return ok({ protocolVersion: params?.protocolVersion || '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'zcode-dispatch', version: '0.3.0' } });
+  if (method === 'initialize') return ok({ protocolVersion: params?.protocolVersion || '2024-11-05', capabilities: { tools: {} }, serverInfo: { name: 'zcode-dispatch', version: '0.4.0' } });
   if (method === 'ping') return ok({});
   if (method === 'tools/list') return ok({ tools: TOOLS.map(({ run, ...t }) => t) });
   if (method === 'tools/call') {
