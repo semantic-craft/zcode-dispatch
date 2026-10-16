@@ -1,6 +1,6 @@
 {
   "name": "zcode-grokbot-dispatch",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Grok Bot Dispatch for ZCode: bidirectional task dispatch between ZCode desktop and Grok Bot / DSH ([Project: X] routing, persistent session<->job mapping, automatic result reporting back to your Grok Bot peer: direct HTTP by default, Yobiru optional).",
   "description_i18n": {
     "en": "Grok Bot Dispatch for ZCode: bidirectional task dispatch between ZCode desktop and Grok Bot / DSH ([Project: X] routing, persistent session<->job mapping, automatic result reporting back to your Grok Bot peer: direct HTTP by default, Yobiru optional).",

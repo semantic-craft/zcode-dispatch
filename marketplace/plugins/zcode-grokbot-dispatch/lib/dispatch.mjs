@@ -12,6 +12,7 @@ import path from 'node:path';
 import { JOB_ID_RE, defaultStateDir, loadMap } from './job-map.mjs';
 import { denyProjectsRe, projectsRoot, readConfigFile, resolveNetConfig } from './netconfig.mjs';
 import { directPeers, directSend, directStatus, expandHome, send, status as transportStatus, transportName, which } from './transport.mjs';
+import { cloneDirective, publicationClone } from './verification-clone.mjs';
 
 const HOME = os.homedir();
 export const CFG = {
@@ -45,25 +46,46 @@ export async function toGrokBot({ project, text, timeout_seconds = 1800 }) {
   return { target: 'grok-bot', via: transportName(), project: r.project, request_id: out.id, output: out.output };
 }
 
-export async function toDsh({ project, text, timeout_seconds = 1800 }) {
+/**
+ * Verification ("verify-local" class) tasks scan history with `gitleaks git --log-opts=--all`, i.e.
+ * every ref in the checkout's own object database. In a shared developer checkout that set also
+ * holds other agents' unpublished local branches, stashes and archive refs, so the gate fails on
+ * findings that do not belong to the commit under review. `isolated` runs the task in a throwaway
+ * clone of the project's published refs plus the exact reviewed commit instead. See
+ * verification-clone.mjs for why the clone must come from the GitHub remote and must not be
+ * `--single-branch`.
+ */
+function prepareIsolation({ r, commit, ref }) {
+  if (CFG.dshVia !== 'local') {
+    throw new Error('isolated verification requires local dsh: the fresh clone is created on this machine, but the job would run on the configured dsh peer');
+  }
+  if (!commit) throw new Error('isolated verification requires commit: the exact reviewed commit to clone and check out');
+  return publicationClone({ project: r.project, projectDir: r.cwd, commit, ref });
+}
+
+export async function toDsh({ project, text, timeout_seconds = 1800, isolated = false, commit, ref }) {
   const r = route(project, text);
+  const clone = isolated ? prepareIsolation({ r, commit, ref }) : null;
+  const cwd = clone ? clone.path : r.cwd;
+  const task = clone ? `${cloneDirective(clone)}\n\n${r.text}` : r.text;
   fs.mkdirSync(CFG.stateDir, { recursive: true, mode: 0o700 });
   const id = randomBytes(8).toString('hex');
   const file = path.join(CFG.stateDir, `${id}.json`);
-  const job = { id, target: 'dsh', via: CFG.dshVia, project: r.project, state: 'running', created_at: new Date().toISOString(), text_preview: r.text.slice(0, 200) };
+  const job = { id, target: 'dsh', via: CFG.dshVia, project: r.project, state: 'running', created_at: new Date().toISOString(), text_preview: task.slice(0, 200) };
+  if (clone) Object.assign(job, { isolated: true, clone_path: clone.path, clone_commit: clone.inventory.head });
   if (job.via === 'http') {
     // Cross-machine: DSH's own POST /v1/jobs; result comes back by callback (POST /v1/callbacks) or dispatch_status polling.
-    await directSend('dsh', { project: r.project, text: r.text, timeoutSeconds: timeout_seconds, jobId: id });
+    await directSend('dsh', { project: r.project, text: task, timeoutSeconds: timeout_seconds, jobId: id });
     fs.writeFileSync(file, JSON.stringify(job, null, 2), { mode: 0o600 });
     return { target: 'dsh', via: 'http', project: r.project, job_id: id, state: 'running' };
   }
   if (!CFG.dsh) throw new Error('dsh not found: put dsh on PATH, set "dshBin" (or DSH_BIN), or configure peers.dsh for HTTP dispatch');
   fs.writeFileSync(file, JSON.stringify(job, null, 2), { mode: 0o600 });
   // Detached worker so the job outlives the MCP server / ZCode session.
-  const child = spawn(process.execPath, [new URL('./dsh-worker.mjs', import.meta.url).pathname, file, r.cwd, r.text, String(timeout_seconds)],
+  const child = spawn(process.execPath, [new URL('./dsh-worker.mjs', import.meta.url).pathname, file, cwd, task, String(timeout_seconds)],
     { detached: true, stdio: 'ignore', env: { ...process.env, DSH_BIN: CFG.dsh, DSH_PROFILE: CFG.dshProfile } });
   child.unref();
-  return { target: 'dsh', via: 'local', project: r.project, job_id: id, state: 'running' };
+  return { target: 'dsh', via: 'local', project: r.project, job_id: id, state: 'running', ...(clone ? { cwd, clone } : {}) };
 }
 
 export async function status({ id }) {

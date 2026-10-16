@@ -27,3 +27,12 @@
 - 修复与证据：在 `lib/appsession.mjs` 与 `marketplace/plugins/zcode-dispatch/lib/job-map.mjs` 中把 `[job: <id>]` 嵌进任务 prompt 与会话标题，并在持久映射文件 `session-jobs.json` 中记录 `session_id <-> job_id`；`UserPromptSubmit` 与 `Stop` hook 通过映射表、prompt 标签及只读数据库兜底反查 `job_id` 并经 Yobiru 自动回报，由 `test/appsession.test.mjs` 与真机桌面会话端到端实测验证。
 - 正确做法（Done right）：跨进程交给宿主应用调度的任务，凡需在插件 Hook 中关联外部请求上下文，统一写入任务标签与持久化状态映射（见 `marketplace/plugins/zcode-dispatch/lib/job-map.mjs` 和 `marketplace/plugins/zcode-dispatch/hooks/stop-report.mjs`），并在 `npm test` 中覆盖无环境变量场景下的 Hook 回报。
 - 复发记录：Seen 1x (2026-10-15)；提交 `0d4c447` 后冒烟测试 `827d964c33e218c7` 完成但 `reports/` 为空。
+
+### 验证类任务必须在远端干净克隆中运行，不能在共享检出里跑全 ref 历史扫描
+
+**派发本机验证（verify-local 类）任务时，必须让它在从项目 GitHub origin 新建的干净克隆里执行，不要在多个 agent 共用的检出里直接跑。**
+
+- 起因与后果：responsay-macos PR #271 的 `scripts/ci/verify-local.sh` 在共享检出（`~/Projects/responsay-macos`，同时挂着其他 agent 未发布的本地 ref）里执行；`scripts/ci/scan-secrets.sh` 的历史扫描用 `gitleaks git --log-opts=--all`，扫到远端不存在的两个本地分支（`research/agent-plan-grok-20261012` = `20e170aa`、`research/agent-plan-cursor-20261012` = `613f6a1`）里 `public-source-local-path-review` 的 7 条命中，使 PR 的 secrets 门禁因与被审提交无关的原因失败。重现：共享检出 `--all` 退出码 1（445 commits、7 条命中），同一被审提交的干净克隆退出码 0。
+- 修复与证据：新增 `marketplace/plugins/zcode-grokbot-dispatch/lib/verification-clone.mjs`，`dispatch_to_dsh` 增加 `isolated`/`commit`/`ref`：从 origin `git clone --no-local`（保留全部已发布分支与标签，刻意不用 `--single-branch`），必要时 fetch PR ref，再 detached 检出被审提交，并把 `[verification-clone]` 指令前置到任务文本。`test/verification-clone.test.mjs` 覆盖共享检出 `--all` 含未发布提交、克隆不含、已发布 ref 全保留、PR ref 回退 fetch、输入校验与清理、MCP 参数表。真实数据验证：同一被审提交从 GitHub 新建的干净克隆中 `scan-secrets.sh` 四步全通过（退出码 0），共享检出同脚本退出码 1（仅 Gitleaks history 失败）。未在真实环境验证：未经 ZCode.app 桌面会话端到端派发一次 `isolated` 任务。
+- 正确做法（Done right）：验证任务一律在干净克隆里跑（`marketplace/plugins/zcode-grokbot-dispatch/lib/verification-clone.mjs`）；对照 responsay-macos `docs/operations/ci.md`「Local remotes and preserved work」——保留未发布 ref、不加扫描器例外、不改写历史，只换执行位置。克隆必须来自 origin 远端：克隆共享检出本身（即使加 `--no-local`）会连它的未发布本地 ref 一起带走，原故障照旧。
+- 复发记录：Seen 1x (2026-10-16)；PR #271 secrets 门禁在共享检出失败、在同一提交的 GitHub 干净克隆通过。
