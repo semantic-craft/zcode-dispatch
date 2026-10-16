@@ -113,6 +113,20 @@ export function finalModel(stdout) {
   return null;
 }
 
+/**
+ * Verification-style work (builds, tests, gates, git history scans) must happen in a
+ * clean single-branch clone: linked worktrees and maintainer checkouts share refs, so
+ * history-wide scans there sweep unrelated local refs and raise false alarms
+ * (e.g. responsay-macos PR #271's verify-local gitleaks --all run, 2026-10-16).
+ */
+export const CHECKOUT_POLICY =
+  "[zcode-dispatch checkout-policy] If this job runs builds, tests, verification gates or git history scans in the project repository, do that work in a clean single-branch clone under a fresh temp directory (git clone --no-local --single-branch --branch <branch> <origin-url>), or fetch only the needed PR ref into a fresh temp clone. Never run such work in a linked worktree of an existing checkout or in a maintainer's working checkout: shared refs make history-wide scans (--log-opts=--all) sweep unrelated local refs and raise false alarms. A history scan must still cover at least the verified head's full reachable commits.";
+
+/** Append CHECKOUT_POLICY to inbound job text for git checkouts; non-git folders stay untouched. */
+export function withCheckoutPolicy(cwd, text, hasGit = (p) => fs.existsSync(path.join(p, '.git'))) {
+  return hasGit(cwd) ? `${text}\n\n${CHECKOUT_POLICY}` : text;
+}
+
 export class JobStore {
   constructor(cfg) {
     this.cfg = cfg;
@@ -142,7 +156,7 @@ export function startJob(store, spec, logger = console) {
     ...(spec.callbackPeer ? { callback_peer: spec.callbackPeer } : {}), ...(spec.callbackUrl ? { callback_url: spec.callbackUrl } : {}) };
   store.save(job);
   const env = { ...process.env, ZCODE_DISPATCH_JOB_ID: id, ZCODE_DISPATCH_SOURCE: spec.source, ZCODE_DISPATCH_TIMEOUT: String(spec.timeoutSeconds), ...(spec.model ? { ZCODE_DISPATCH_MODEL: spec.model } : {}) };
-  const child = spawn(cfg.runner, ['-p', spec.text, '--cwd', spec.cwd, '--mode', spec.mode, ...(spec.model ? ['--model', spec.model] : []), '--json', '--surface', 'terminal'],
+  const child = spawn(cfg.runner, ['-p', withCheckoutPolicy(spec.cwd, spec.text), '--cwd', spec.cwd, '--mode', spec.mode, ...(spec.model ? ['--model', spec.model] : []), '--json', '--surface', 'terminal'],
     { cwd: spec.cwd, env, stdio: ['ignore', 'pipe', 'pipe'], detached: true });
   store.running.set(id, child);
   let out = ''; let err = '';

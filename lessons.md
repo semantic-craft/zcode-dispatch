@@ -27,3 +27,12 @@
 - 修复与证据：在 `lib/appsession.mjs` 与 `marketplace/plugins/zcode-dispatch/lib/job-map.mjs` 中把 `[job: <id>]` 嵌进任务 prompt 与会话标题，并在持久映射文件 `session-jobs.json` 中记录 `session_id <-> job_id`；`UserPromptSubmit` 与 `Stop` hook 通过映射表、prompt 标签及只读数据库兜底反查 `job_id` 并经 Yobiru 自动回报，由 `test/appsession.test.mjs` 与真机桌面会话端到端实测验证。
 - 正确做法（Done right）：跨进程交给宿主应用调度的任务，凡需在插件 Hook 中关联外部请求上下文，统一写入任务标签与持久化状态映射（见 `marketplace/plugins/zcode-dispatch/lib/job-map.mjs` 和 `marketplace/plugins/zcode-dispatch/hooks/stop-report.mjs`），并在 `npm test` 中覆盖无环境变量场景下的 Hook 回报。
 - 复发记录：Seen 1x (2026-10-15)；提交 `0d4c447` 后冒烟测试 `827d964c33e218c7` 完成但 `reports/` 为空。
+
+### 派发的验证任务不得在共享 refs 的检出里跑全历史扫描
+
+**需要跑构建/测试/验证门禁或 git 历史扫描的入站 job，必须在临时目录的干净单分支克隆（或仅 fetch 所需 PR ref 的临时克隆）里执行；历史扫描不得少于被验证 head 的全部可达提交。**
+
+- 起因与后果：receiver 把 job 以 `--cwd ~/Projects/<project>` 直接交给会话，会话常在被派项目与维护者工作区共享 refs 的检出/worktree 里工作。2026-10-16 派发工单（job `289ea0458e19e871`）复盘 responsay-macos PR #271 的 verify-local 失败时确认：会话在这样的检出里跑 `gitleaks --log-opts=--all`，扫到维护者本地未推送的 research 分支并误报 7 条命中；远端完整克隆 + 全部 pull refs 中均无这些对象，PR 自身历史（origin/main、origin/main..head、head 全历史）扫描全部干净。
+- 修复与证据：`receiver/core.mjs` 的 `startJob` 对 git 项目入站任务经 `withCheckoutPolicy` 追加 checkout-policy 提示（干净单分支克隆/fetch PR ref 到临时目录），存储的 job 文本保持调用方原文；`test/core.test.mjs` 回归覆盖 git 目录（含 `.git` 文件形态的 worktree）追加、非 git 目录不追加、runner argv 实际收到策略文本且存储文本不含策略。
+- 正确做法（Done right）：凡涉及仓库级扫描或验证门禁的派发任务，先在临时目录 `git clone --no-local --single-branch --branch <branch> <origin-url>`，或向临时克隆仅 fetch 所需 PR ref；不得为消除误报而缩小对被验证 head 自身可达历史的扫描。
+- 复发记录：Seen 1x (2026-10-16)。

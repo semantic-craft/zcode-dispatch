@@ -2,7 +2,7 @@ import { BOX_IP, GROK_PEER } from './helpers/net-fixture.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
-import { DEFAULTS, JobStore, checkAuth, extractResult, startJob, validateDispatch } from '../receiver/core.mjs';
+import { CHECKOUT_POLICY, DEFAULTS, JobStore, checkAuth, extractResult, startJob, validateDispatch, withCheckoutPolicy } from '../receiver/core.mjs';
 import { route, status } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/dispatch.mjs';
 import { upsertJob } from '../marketplace/plugins/zcode-grokbot-dispatch/lib/job-map.mjs';
 
@@ -38,6 +38,30 @@ test('job runs with stub runner and concurrency cap', async () => {
   const done = store.get(job.id);
   assert.equal(done.state, 'completed');
   assert.equal(done.result, `done ${job.id}`);
+});
+test('checkout policy appends only for git checkouts', () => {
+  const gitDir = path.join(tmp, 'Projects', 'gitproj');
+  fs.mkdirSync(path.join(gitDir, '.git'), { recursive: true });
+  const wtDir = path.join(tmp, 'Projects', 'wtproj');
+  fs.mkdirSync(wtDir, { recursive: true });
+  fs.writeFileSync(path.join(wtDir, '.git'), 'gitdir: /elsewhere\n');   // linked-worktree form
+  const text = '[Project: gitproj] verify please';
+  assert.match(withCheckoutPolicy(gitDir, text), /checkout-policy/);
+  assert.ok(withCheckoutPolicy(gitDir, text).endsWith(CHECKOUT_POLICY));
+  assert.match(withCheckoutPolicy(wtDir, text), /checkout-policy/);
+  assert.equal(withCheckoutPolicy(path.join(tmp, 'Projects', 'demo'), text), text);
+});
+test('startJob hands the checkout policy to the runner for git projects; stored text stays clean', async () => {
+  const argvLog = path.join(tmp, 'argv.log');
+  const argvStub = path.join(tmp, 'argv-stub.sh');
+  fs.writeFileSync(argvStub, `#!/bin/sh\nprintf '%s\\n' "$@" >> '${argvLog}'\necho '{"result":"ok"}'\n`, { mode: 0o755 });
+  const gitDir = path.join(tmp, 'Projects', 'gitproj');
+  const store = new JobStore({ ...cfg, runner: argvStub });
+  const spec = validateDispatch(cfg, { project: 'gitproj', text: '[Project: gitproj] verify please' });
+  const job = startJob(store, spec, {});
+  for (let i = 0; i < 50 && store.running.size; i++) await new Promise(r => setTimeout(r, 100));
+  assert.match(fs.readFileSync(argvLog, 'utf8'), /checkout-policy/);
+  assert.ok(!store.get(job.id).text.includes('checkout-policy'));
 });
 test('outbound route tags text', () => {
   // temp-dir projects root (was the real ~/Projects)
