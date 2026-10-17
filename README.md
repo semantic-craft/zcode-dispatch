@@ -155,6 +155,7 @@ Because ZCode.app's Host spawns desktop sessions without inheriting `ZCODE_DISPA
 npm start                     # receiver (foreground); any supervisor (launchd/systemd/pm2) may wrap it
 curl -s http://<host>:7791/health
 npm test
+bin/check                     # local literal-IP guard (no network, no GitHub Actions)
 ZCODE_DISPATCH_URL=http://<host>:7791 ZCODE_DISPATCH_KEY=... client/zcode-dispatch.sh send myproj "[Project: myproj] Reply with exactly OK"   # then: wait <id>
 ```
 

@@ -4,6 +4,7 @@
 - Keep ZCode's Yobiru wake adapter (private deploy, outside this public repo) separate from DSH's `dsh-wake`; never route zcode work through DSH's entry.
 - Plugin changes: bump version in both `marketplace/marketplace.json` and the plugin's `plugin.json`.
 - Tests: `npm test` (node --test, no network, stub runner).
+- Local literal-IP guard: `bin/check` (docs, test(s)/fixtures, and exact path+address entries in `.ip-literals-allow` are exempt).
 - Merge via PR, squash.
 
 ## 验收记录与错题本（硬规则）
